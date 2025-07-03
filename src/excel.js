@@ -1,106 +1,97 @@
+// excel.js (versão atualizada)
+
 import ExcelJS from 'exceljs';
 
 /**
- * Converte um valor (string, número ou objeto) para um número (float).
- * @param {*} valor O valor da célula do Excel.
- * @returns {number|null} O valor como número ou null se a conversão falhar.
- */
+ * Converte um valor (string, número ou objeto) para um número (float).
+ * @param {*} valor O valor da célula do Excel.
+ * @returns {number|null} O valor como número ou null se a conversão falhar.
+ */
 function parseValorParaNumero(valor) {
-    if (valor === null || valor === undefined) return null;
-    if (typeof valor === 'object' && valor.richText) {
-        valor = valor.richText.map(rt => rt.text).join('');
-    }
-    if (typeof valor === 'number') {
-        return valor;
-    }
-    const strValue = String(valor).trim();
-    const valorNormalizado = strValue.replace(/\./g, '').replace(',', '.');
-    const num = parseFloat(valorNormalizado);
-    return isNaN(num) ? null : num;
+    if (valor === null || valor === undefined) return null;
+    if (typeof valor === 'object' && valor.richText) {
+        valor = valor.richText.map(rt => rt.text).join('');
+    }
+    if (typeof valor === 'number') {
+        return valor;
+    }
+    const strValue = String(valor).trim();
+    const valorNormalizado = strValue.replace(/\./g, '').replace(',', '.');
+    const num = parseFloat(valorNormalizado);
+    return isNaN(num) ? null : num;
 }
 
 
 export async function encontrarNFeFORNECEDOR(valorBuscadoDoPdf, caminho) {
-    if (valorBuscadoDoPdf === null || valorBuscadoDoPdf === undefined) {
-        return null;
-    }
+    if (valorBuscadoDoPdf === null || valorBuscadoDoPdf === undefined) {
+        // Retorna um objeto de status para consistência
+        return { status: 'error', message: 'Valor buscado do PDF é nulo.' };
+    }
 
-    const workbook = new ExcelJS.Workbook();
-    try {
-        await workbook.xlsx.readFile(caminho);
-        const worksheet = workbook.getWorksheet(1);
+    const workbook = new ExcelJS.Workbook();
+    try {
+        await workbook.xlsx.readFile(caminho);
+        const worksheet = workbook.getWorksheet(1);
 
-        const valorPdfArredondado = parseFloat(valorBuscadoDoPdf.toFixed(2));
-        console.log(`Buscando por valor: ${valorPdfArredondado}`);
+        const valorPdfArredondado = parseFloat(valorBuscadoDoPdf.toFixed(2));
+        console.log(`Buscando por valor: ${valorPdfArredondado}`);
 
-        // Array para armazenar TODOS os resultados encontrados
-        const resultadosEncontrados = [];
+        const resultadosEncontrados = [];
 
-        worksheet.eachRow({ includeEmpty: true }, (row) => {
-            row.eachCell({ includeEmpty: true }, (cell) => {
-                let valorDaCelula = cell.value;
+        worksheet.eachRow({ includeEmpty: true }, (row) => {
+            // Otimização: Se já encontrou o valor na coluna F, busca os dados nas outras colunas da mesma linha
+            const valorCelulaF = row.getCell('F').value;
+            const valorCelulaNumerico = parseValorParaNumero(valorCelulaF);
 
-                if (valorDaCelula === null && cell.isMerged) {
-                    const masterCell = worksheet.getCell(cell.master);
-                    valorDaCelula = masterCell.value;
-                }
+            if (valorCelulaNumerico !== null) {
+                const valorCelulaArredondado = parseFloat(valorCelulaNumerico.toFixed(2));
 
-                const valorCelulaNumerico = parseValorParaNumero(valorDaCelula);
+                if (valorCelulaArredondado === valorPdfArredondado) {
+                    const celulaNF = row.getCell('B').value;
+                    const celulaFornecedor = row.getCell('C').value;
+                    const celulaTipo = row.getCell('D').value;
 
-                if (valorCelulaNumerico !== null) {
-                    const valorCelulaArredondado = parseFloat(valorCelulaNumerico.toFixed(2));
+                    // A condição principal
+                    if (celulaNF && celulaFornecedor && celulaTipo && String(celulaTipo).trim().toLowerCase() === 'nf') {
+                        resultadosEncontrados.push({
+                            linha: row.number,
+                            nf: String(celulaNF).trim(),
+                            fornecedor: String(celulaFornecedor).trim()
+                        });
+                    }
+                }
+            }
+        });
 
-                    if (valorCelulaArredondado === valorPdfArredondado) {
-                        const celulaNF = row.getCell('B').value;
-                        const celulaFornecedor = row.getCell('C').value;
+        // --- ANÁLISE DOS RESULTADOS APÓS PERCORRER TODO O ARQUIVO ---
 
-                        if (celulaNF && celulaFornecedor) {
-                            // Adiciona o resultado encontrado à lista
-                            resultadosEncontrados.push({
-                                linha: row.number,
-                                nf: String(celulaNF).trim(),
-                                fornecedor: String(celulaFornecedor).trim()
-                            });
-                        }
-                    }
-                }
-            });
-        });
+        // Caso 1: Nenhuma correspondência encontrada
+        if (resultadosEncontrados.length === 0) {
+            console.log(`Valor '${valorPdfArredondado}' não foi encontrado na planilha (ou não era do tipo 'nf').`);
+            return { status: 'not_found' };
+        }
 
-        // --- ANÁLISE DOS RESULTADOS APÓS PERCORRER TODO O ARQUIVO ---
+        // Caso 2: Exatamente uma correspondência (sucesso!)
+        if (resultadosEncontrados.length === 1) {
+            console.log(`>>> Correspondência ÚNICA encontrada na Linha ${resultadosEncontrados[0].linha}!`);
+            return { status: 'success', data: resultadosEncontrados[0] };
+        }
 
-        // Caso 1: Nenhuma correspondência encontrada
-        if (resultadosEncontrados.length === 0) {
-            console.log(`Valor '${valorPdfArredondado}' não foi encontrado na planilha.`);
-            return null;
-        }
+        // Caso 3: Múltiplas correspondências (duplicatas encontradas)
+        if (resultadosEncontrados.length > 1) {
+            // Apenas avisa no console, mas não encerra o script
+            console.warn(`\n--- ALERTA: MÚLTIPLAS CORRESPONDÊNCIAS PARA O VALOR ${valorPdfArredondado} ---`);
+            for (const resultado of resultadosEncontrados) {
+                console.warn(`  - Linha ${resultado.linha}: NF=${resultado.nf}, Fornecedor=${resultado.fornecedor}`);
+            }
+            console.warn(`O arquivo correspondente a este valor NÃO será renomeado para evitar erros.\n`);
+            
+            // Retorna um status de 'duplicate' com os dados para o relatório
+            return { status: 'duplicate', value: valorPdfArredondado, duplicates: resultadosEncontrados };
+        }
 
-        // Caso 2: Exatamente uma correspondência (seguro para continuar)
-        if (resultadosEncontrados.length === 1) {
-            console.log(`>>> Correspondência ÚNICA encontrada na Linha ${resultadosEncontrados[0].linha}!`);
-            return resultadosEncontrados[0];
-        }
-
-        // Caso 3: Múltiplas correspondências (duplicatas encontradas)
-        if (resultadosEncontrados.length > 1) {
-            console.error('\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
-            console.error(`!!! ERRO CRÍTICO: MÚLTIPLAS CORRESPONDÊNCIAS ENCONTRADAS !!!`);
-            console.error(`O valor '${valorPdfArredondado}' foi encontrado em ${resultadosEncontrados.length} locais diferentes:`);
-
-            for (const resultado of resultadosEncontrados) {
-                console.error(`  - Linha ${resultado.linha}: NF=${resultado.nf}, Fornecedor=${resultado.fornecedor}`);
-            }
-
-            console.error('O SCRIPT SERÁ ENCERRADO PARA EVITAR RENOMEAÇÃO INCORRETA.');
-            console.error('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n');
-            console.error('Por favor, renomeie manualmente. Após renomear, vá no relatório e mude o valor dos comprovantes identificados como iguais para um valor aleatório, para dar sequencia ao script.')
-
-            // "Quebra" o código, encerrando o processo completamente.
-            process.exit(1);
-        }
-
-    } catch (err) {
-        console.error('Erro fatal ao ler o arquivo Excel:', err.message);
-        return null;
-    }
+    } catch (err) {
+        console.error('Erro fatal ao ler o arquivo Excel:', err.message);
+        return { status: 'error', message: err.message };
+    }
 }

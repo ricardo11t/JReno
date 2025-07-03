@@ -17,9 +17,10 @@ export async function encontrarValorDoComprovante(caminho) {
 
         // Lista de expressões regulares para os diferentes formatos de comprovante
         const regexesParaTentar = [
-            /VALOR COBRADO\s+([\d.,]+)/i, // Formato 1: "VALOR COBRADO 10.676,03"
-            /VALOR:\s+([\d.,]+)/i,         // Formato 2: "VALOR: 63.000,00"
-            /VALOR:\s+R\$\s+([\d.,]+)/i, // Formato 3: "VALOR: R$ 112,00"
+            /VALOR COBRADO\s+([\d.,]+)/i, // Formato 1: "VALOR COBRADO X"
+            /VALOR:\s+([\d.,]+)/i,         // Formato 2: "VALOR: X"
+            /VALOR:\s+R\$\s+([\d.,]+)/i, // Formato 3: "VALOR: R$ X"
+            /VALOR TOTAL\s+([\d.,]+)/i // Formato 4: "VALOR TOTAL X"
         ];
 
         let match = null;
