@@ -49,10 +49,9 @@ export async function encontrarNFeFORNECEDOR(valorBuscadoDoPdf, caminho) {
                 if (valorCelulaArredondado === valorPdfArredondado) {
                     const celulaNF = row.getCell('B').value;
                     const celulaFornecedor = row.getCell('C').value;
-                    const celulaTipo = row.getCell('D').value;
 
                     // A condição principal
-                    if (celulaNF && celulaFornecedor && celulaTipo && String(celulaTipo).trim().toLowerCase() === 'nf') {
+                    if (celulaNF && celulaFornecedor) {
                         resultadosEncontrados.push({
                             linha: row.number,
                             nf: String(celulaNF).trim(),

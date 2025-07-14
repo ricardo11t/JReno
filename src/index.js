@@ -5,8 +5,8 @@ import { encontrarValorDoComprovante } from "./pdf.js";
 import fs from 'fs';
 import path from 'path';
 
-const caminhoRelatorio = 'C:\\Users\\ricardo.hl\\Desktop\\relatorio isgh maio 2025\\data-grid.xlsx';
-const pastaAlvo = 'C:\\Users\\ricardo.hl\\Desktop\\teste';
+const caminhoRelatorio = 'C:\\Users\\ricardo.hl\\Desktop\\relatorio postos junho 2025\\data-grid.xlsx';
+const pastaAlvo = 'C:\\Users\\ricardo.hl\\Desktop\\teste\\comprovantes_divididos';
 const prefixoNovoNome = 'COMP. NF';
 
 async function main(pastaDosComprovantes, caminhoDoRelatorio, prefixo) {
