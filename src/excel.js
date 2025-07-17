@@ -38,6 +38,8 @@ export async function encontrarNFeFORNECEDOR(valorBuscadoDoPdf, caminho) {
 
         const resultadosEncontrados = [];
 
+        const nfs = [];
+
         worksheet.eachRow({ includeEmpty: true }, (row) => {
             // Otimização: Se já encontrou o valor na coluna F, busca os dados nas outras colunas da mesma linha
             const valorCelulaF = row.getCell('F').value;
@@ -57,6 +59,7 @@ export async function encontrarNFeFORNECEDOR(valorBuscadoDoPdf, caminho) {
                             nf: String(celulaNF).trim(),
                             fornecedor: String(celulaFornecedor).trim()
                         });
+                        nfs.push(celulaNF);
                     }
                 }
             }

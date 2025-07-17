@@ -108,3 +108,4 @@ async function main(pastaDosComprovantes, caminhoDoRelatorio, prefixo) {
 }
 
 main(pastaAlvo, caminhoRelatorio, prefixoNovoNome);
+
