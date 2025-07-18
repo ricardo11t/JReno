@@ -3,10 +3,10 @@ from pypdf import PdfReader, PdfWriter
 
 # --- CONFIGURAÇÃO ---
 # Coloque o nome do seu arquivo PDF grande aqui
-ARQUIVO_ENTRADA = 'C:/Users/ricardo.hl/Desktop/teste/11072025 144067-Comprovantes-BB.pdf'
+ARQUIVO_ENTRADA = 'C:/Users/ricardo.hl/Desktop/teste/FEVEREIRO -  CONTABILIDADE PAGAMENTOS - B. BRASIL 5.pdf'
 
 # Nome da pasta onde os arquivos divididos serão salvos
-PASTA_SAIDA = 'C:/Users/ricardo.hl/Desktop/teste/comprovantes_divididos'
+PASTA_SAIDA = 'C:/Users/ricardo.hl/Desktop/teste/comprovantes_divididos3'
 # --- FIM DA CONFIGURAÇÃO ---
 
 def dividir_pdf():
