@@ -1,11 +1,11 @@
-import ExcelJS from 'exceljs';
+const ExcelJS = require("exceljs");
 
 const JANELA_TOLERANCIA_DIAS = 2;
 
 function normalizarTextoCabecalho(cellValue) { if (!cellValue) return ''; let texto = ''; if (typeof cellValue === 'object' && cellValue.richText) { texto = cellValue.richText.map(rt => rt.text).join(''); } else { texto = String(cellValue); } return texto.toLowerCase().replace(/\s+/g, ' ').trim(); }
 function parseValorParaNumero(valor) { if (valor === null || valor === undefined) return null; if (typeof valor === 'object' && valor.richText) { valor = valor.richText.map(rt => rt.text).join(''); } if (typeof valor === 'number') { return valor; } const strValue = String(valor).trim(); const valorNormalizado = strValue.replace(/\./g, '').replace(',', '.'); const num = parseFloat(valorNormalizado); return isNaN(num) ? null : num; }
 
-export async function encontrarNFeFORNECEDOR(result, caminho, memoriaNFsUtilizadas) {
+async function encontrarNFeFORNECEDOR(result, caminho, memoriaNFsUtilizadas) {
     if (!result || result.valor === null || result.valor === undefined) return { status: 'error', message: 'Valor buscado do PDF é nulo ou inválido.' };
     if (result.data === null || result.data === undefined) return { status: 'error', message: 'Data buscada do PDF é nula ou inválida.' };
 
@@ -111,3 +111,9 @@ export async function encontrarNFeFORNECEDOR(result, caminho, memoriaNFsUtilizad
         return { status: 'error', message: err.message };
     }
 }
+
+module.exports = {
+    encontrarNFeFORNECEDOR,
+    normalizarTextoCabecalho,
+    parseValorParaNumero
+};

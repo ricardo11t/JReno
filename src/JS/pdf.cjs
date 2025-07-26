@@ -1,11 +1,10 @@
-import fs from 'fs';
-import { createRequire } from 'module';
+const fs = require("fs");
 
-const require = createRequire(import.meta.url);
 const pdf = require('pdf-parse');
 
-export async function encontrarValorDoComprovante(caminho) {
+async function encontrarValorDoComprovante(caminho) {
     try {
+
         if (!fs.existsSync(caminho)) {
             console.error(`Arquivo PDF não encontrado: ${caminho}`);
             return null;
@@ -72,3 +71,7 @@ export async function encontrarValorDoComprovante(caminho) {
         return null;
     }
 }
+
+module.exports = {
+    encontrarValorDoComprovante
+};

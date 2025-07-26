@@ -1,10 +1,7 @@
-import { encontrarNFeFORNECEDOR } from "./excel.js";
-import { encontrarValorDoComprovante } from "./pdf.js";
-import fs from 'fs';
-import path from 'path';
-
-const caminhoRelatorio = 'C:\\Users\\ricardo.hl\\Desktop\\relatorios\\relatorio armazem junho 2025\\data-grid.xlsx';
-const pastaAlvo = 'C:\\Users\\ricardo.hl\\Desktop\\comprovantes\\comprovantes armazem junho 2025\\24072025 104425-Comprovantes-BB_dividido';
+const { encontrarNFeFORNECEDOR } = require("./excel.cjs");
+const { encontrarValorDoComprovante } = require("./pdf.cjs");
+const fs = require('fs');
+const path = require('path');
 const prefixoNovoNome = 'COMP. NF';
 
 async function obterCaminhoUnico(pasta, nomeBase, extensao) {
@@ -23,10 +20,21 @@ async function obterCaminhoUnico(pasta, nomeBase, extensao) {
 
 async function main(pastaDosComprovantes, caminhoDoRelatorio, prefixo) {
     // --- LÓGICA DE RELATÓRIO APRIMORADA ---
-    const arquivosComFalha = []; // Array para guardar TODOS os arquivos que falharam
+    const arquivosComFalha = [];
     const memoriaNFsUtilizadas = new Map();
 
     try {
+        // Verifica se a pasta dos comprovantes existe
+        if (!fs.existsSync(pastaDosComprovantes)) {
+            console.error(`Erro: A pasta dos comprovantes não existe: ${pastaDosComprovantes}`);
+            return `Erro: Pasta dos comprovantes não encontrada: ${pastaDosComprovantes}`; // Retorna mensagem de erro
+        }
+        // Verifica se o arquivo do relatório existe
+        if (!fs.existsSync(caminhoDoRelatorio)) {
+            console.error(`Erro: O arquivo do relatório Excel não existe: ${caminhoDoRelatorio}`);
+            return `Erro: Relatório Excel não encontrado: ${caminhoDoRelatorio}`; // Retorna mensagem de erro
+        }
+
         const arquivos = await fs.promises.readdir(pastaDosComprovantes);
         const totalArquivos = arquivos.filter(a => path.extname(a).toLowerCase() === '.pdf').length;
         let arquivosProcessados = 0;
@@ -35,7 +43,7 @@ async function main(pastaDosComprovantes, caminhoDoRelatorio, prefixo) {
             const caminhoAntigo = path.join(pastaDosComprovantes, arquivo);
 
             if (path.extname(arquivo).toLowerCase() !== '.pdf') continue;
-            
+
             arquivosProcessados++;
             console.log(`\nProcessando ${arquivosProcessados}/${totalArquivos}: ${arquivo}`);
 
@@ -53,14 +61,15 @@ async function main(pastaDosComprovantes, caminhoDoRelatorio, prefixo) {
                 arquivosComFalha.push({ arquivo, motivo: 'Não foi possível ler os dados do PDF (layout desconhecido).' });
                 continue;
             }
-            
+
             const resultadoExcel = await encontrarNFeFORNECEDOR(result, caminhoDoRelatorio, memoriaNFsUtilizadas);
 
             if (resultadoExcel.status === 'success') {
                 const dataExcel = resultadoExcel.data;
                 const nf = dataExcel.nf;
                 let fornecedor = dataExcel.fornecedor;
-                
+
+                // Sua lógica de tratamento do fornecedor
                 const fornecedorComSplit = fornecedor.split('/01-')[1];
                 if (typeof fornecedorComSplit === "undefined") {
                     fornecedor = fornecedor.split('/00-')[1];
@@ -92,18 +101,18 @@ async function main(pastaDosComprovantes, caminhoDoRelatorio, prefixo) {
             }
         }
 
-        // --- NOVO RELATÓRIO FINAL COMPLETO ---
-        console.log('\n\n===================================================================');
-        console.log('               RELATÓRIO FINAL DE EXECUÇÃO');
-        console.log('===================================================================');
+        // --- RELATÓRIO FINAL ---
+        let relatorioFinal = '\n\n===================================================================\n';
+        relatorioFinal += '                 RELATÓRIO FINAL DE EXECUÇÃO\n';
+        relatorioFinal += '===================================================================\n';
         const arquivosRenomeados = totalArquivos - arquivosComFalha.length;
-        console.log(`\nTotal de Comprovantes: ${totalArquivos}`);
-        console.log(`Arquivos Renomeados com Sucesso: ${arquivosRenomeados}`);
-        console.log(`Arquivos Não Renomeados: ${arquivosComFalha.length}`);
+        relatorioFinal += `\nTotal de Comprovantes: ${totalArquivos}\n`;
+        relatorioFinal += `Arquivos Renomeados com Sucesso: ${arquivosRenomeados}\n`;
+        relatorioFinal += `Arquivos Não Renomeados: ${arquivosComFalha.length}\n`;
 
         if (arquivosComFalha.length > 0) {
-            console.log('\n--- DIAGNÓSTICO DAS FALHAS ---');
-            
+            relatorioFinal += '\n--- DIAGNÓSTICO DAS FALHAS ---\n';
+
             const falhasAgrupadas = arquivosComFalha.reduce((acc, falha) => {
                 const motivo = falha.motivo;
                 if (!acc[motivo]) acc[motivo] = [];
@@ -112,29 +121,48 @@ async function main(pastaDosComprovantes, caminhoDoRelatorio, prefixo) {
             }, {});
 
             for (const [motivo, falhas] of Object.entries(falhasAgrupadas)) {
-                console.log(`\n[MOTIVO]: ${motivo} (${falhas.length} arquivos)`);
-                
-                // Caso especial para duplicatas, que têm um formato de detalhe rico
+                relatorioFinal += `\n[MOTIVO]: ${motivo} (${falhas.length} arquivos)\n`;
+
                 if (motivo.includes('Duplicidade')) {
-                     for (const falha of falhas) {
-                        console.log(`  -> ${falha.arquivo} (Valor: ${falha.detalhes.value})`);
-                        for(const ocorrencia of falha.detalhes.duplicates) {
-                             console.log(`     - Linha ${ocorrencia.linha}: NF = ${ocorrencia.nf}, Fornecedor = ${ocorrencia.fornecedor}`);
+                    for (const falha of falhas) {
+                        relatorioFinal += `  -> ${falha.arquivo} (Valor: ${falha.detalhes.value})\n`;
+                        for (const ocorrencia of falha.detalhes.duplicates) {
+                            relatorioFinal += `     - Linha ${ocorrencia.linha}: NF = ${ocorrencia.nf}, Fornecedor = ${ocorrencia.fornecedor}\n`;
                         }
-                     }
+                    }
                 } else {
                     for (const falha of falhas) {
-                        console.log(`  -> ${falha.arquivo}`);
+                        relatorioFinal += `  -> ${falha.arquivo}\n`;
                     }
                 }
             }
         }
-        console.log('\n===================================================================\n');
-
-
+        relatorioFinal += '\n===================================================================\n';
+        console.log(relatorioFinal); // Imprime o relatório final no console do Node.js/Electron
+        return relatorioFinal; // Retorna o relatório para o Electron
     } catch (err) {
         console.error('Erro GERAL e fatal ao processar a pasta:', err);
+        return `Erro GERAL e fatal: ${err.message}`; // Retorna a mensagem de erro para o Electron
     }
 }
 
-main(pastaAlvo, caminhoRelatorio, prefixoNovoNome);
+// ===========================================================================
+// Nova seção para lidar com os argumentos da linha de comando
+// ===========================================================================
+const pastaDosComprovantes = process.argv[2];
+const caminhoDoRelatorio = process.argv[3];
+
+if (!pastaDosComprovantes || !caminhoDoRelatorio) {
+    console.error('Uso: node index.js <pasta_dos_comprovantes> <caminho_do_relatorio_excel>');
+    process.exit(1); // Sai com erro
+}
+
+main(pastaDosComprovantes, caminhoDoRelatorio, prefixoNovoNome)
+    .then(result => {
+        console.log(result);
+        process.exit(0);
+    })
+    .catch(error => {
+        console.error(`Erro inesperado na execução principal: ${error.message}`);
+        process.exit(1);
+    });
