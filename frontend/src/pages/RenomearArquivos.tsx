@@ -71,7 +71,7 @@ export default function RenomearArquivos() {
           {/* Título: Usa a cor de destaque azul do VS Code */}
           <div className="flex justify-center mb-8">
             <h1 className="text-3xl md:text-4xl font-extrabold text-vscode-blue text-center">
-              Renomear Arquivos PDF para Fluig
+              Renomear Comprovantes para Fluig
             </h1>
           </div>
 
