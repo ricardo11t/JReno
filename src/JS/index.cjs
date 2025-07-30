@@ -2,6 +2,8 @@ const { encontrarNFeFORNECEDOR } = require("./excel.cjs");
 const { encontrarValorDoComprovante } = require("./pdf.cjs");
 const fs = require('fs');
 const path = require('path');
+const pLimit = require('p-limit').default;
+
 const prefixoNovoNome = 'COMP. NF';
 
 async function obterCaminhoUnico(pasta, nomeBase, extensao) {
@@ -18,7 +20,8 @@ async function obterCaminhoUnico(pasta, nomeBase, extensao) {
     }
 }
 
-async function main(pastaDosComprovantes, caminhoDoRelatorio, prefixo) {
+// NOVO: main agora recebe 'popplerBinPath'
+async function main(pastaDosComprovantes, caminhoDoRelatorio, prefixo, popplerBinPath) {
     // --- LÓGICA DE RELATÓRIO APRIMORADA ---
     const arquivosComFalha = [];
     const memoriaNFsUtilizadas = new Map();
@@ -36,30 +39,34 @@ async function main(pastaDosComprovantes, caminhoDoRelatorio, prefixo) {
         }
 
         const arquivos = await fs.promises.readdir(pastaDosComprovantes);
-        const totalArquivos = arquivos.filter(a => path.extname(a).toLowerCase() === '.pdf').length;
-        let arquivosProcessados = 0;
+        const pdfArquivos = arquivos.filter(a => path.extname(a).toLowerCase() === '.pdf'); // Filtra apenas PDFs
+        const totalArquivos = pdfArquivos.length;
+        let arquivosProcessados = 0; // Para controle de progresso
 
-        for (const arquivo of arquivos) {
+        // NOVO: Limite de concorrência (ex: 5 operações simultâneas)
+        const limit = pLimit(5); // Você pode ajustar este número (5-10 é um bom ponto de partida)
+
+        // Mapeia cada arquivo para uma promessa que será executada com o limite
+        const tasks = pdfArquivos.map(arquivo => limit(async () => { // NOVO: Usa p-limit
             const caminhoAntigo = path.join(pastaDosComprovantes, arquivo);
 
-            if (path.extname(arquivo).toLowerCase() !== '.pdf') continue;
-
             arquivosProcessados++;
-            console.log(`\nProcessando ${arquivosProcessados}/${totalArquivos}: ${arquivo}`);
+            console.error(`\nProcessando ${arquivosProcessados}/${totalArquivos}: ${arquivo}`); // Mude para console.error
 
             let result;
             try {
-                result = await encontrarValorDoComprovante(caminhoAntigo);
+                // Passa 'popplerBinPath' para encontrarValorDoComprovante
+                result = await encontrarValorDoComprovante(caminhoAntigo, popplerBinPath);
             } catch (e) {
                 console.error(`[${arquivo}] Erro CRÍTICO ao processar PDF: ${e.message}`);
                 arquivosComFalha.push({ arquivo, motivo: 'Erro crítico na leitura do PDF.' });
-                continue;
+                return; // Pula para o próximo arquivo no loop de concorrência
             }
 
             if (result === null) {
-                console.log(`[PULANDO] Motivo: Não foi possível extrair os dados do PDF.`);
+                console.error(`[PULANDO] Motivo: Não foi possível extrair os dados do PDF.`);
                 arquivosComFalha.push({ arquivo, motivo: 'Não foi possível ler os dados do PDF (layout desconhecido).' });
-                continue;
+                return; // Pula
             }
 
             const resultadoExcel = await encontrarNFeFORNECEDOR(result, caminhoDoRelatorio, memoriaNFsUtilizadas);
@@ -88,7 +95,7 @@ async function main(pastaDosComprovantes, caminhoDoRelatorio, prefixo) {
                 try {
                     if (caminhoAntigo !== caminhoNovo) {
                         await fs.promises.rename(caminhoAntigo, caminhoNovo);
-                        console.log(`[SUCESSO] Renomeado para: ${nomeFinal}`);
+                        console.log(`[SUCESSO] Renomeado para: ${nomeFinal}`); // Mude para console.log para que apareça limpo
                     }
                 } catch (err) {
                     console.error(`[ERRO] Erro ao tentar renomear para ${nomeFinal}: ${err.message}`);
@@ -96,14 +103,18 @@ async function main(pastaDosComprovantes, caminhoDoRelatorio, prefixo) {
                 }
             } else {
                 const motivo = resultadoExcel.message || 'Motivo não especificado.';
-                console.log(`[PULANDO] Motivo: ${motivo}`);
+                console.error(`[PULANDO] Motivo: ${motivo}`);
                 arquivosComFalha.push({ arquivo, motivo, detalhes: resultadoExcel });
             }
-        }
+        })); // Fim da task para p-limit
+
+        // NOVO: Espera todas as tarefas concluírem
+        await Promise.all(tasks);
+
 
         // --- RELATÓRIO FINAL ---
         let relatorioFinal = '\n\n===================================================================\n';
-        relatorioFinal += '                 RELATÓRIO FINAL DE EXECUÇÃO\n';
+        relatorioFinal += '                 RELATÓRIO FINAL DE EXECUÇÃO\n';
         relatorioFinal += '===================================================================\n';
         const arquivosRenomeados = totalArquivos - arquivosComFalha.length;
         relatorioFinal += `\nTotal de Comprovantes: ${totalArquivos}\n`;
@@ -125,14 +136,14 @@ async function main(pastaDosComprovantes, caminhoDoRelatorio, prefixo) {
 
                 if (motivo.includes('Duplicidade')) {
                     for (const falha of falhas) {
-                        relatorioFinal += `  -> ${falha.arquivo} (Valor: ${falha.detalhes.value})\n`;
+                        relatorioFinal += `  -> ${falha.arquivo} (Valor: ${falha.detalhes.value})\n`;
                         for (const ocorrencia of falha.detalhes.duplicates) {
-                            relatorioFinal += `     - Linha ${ocorrencia.linha}: NF = ${ocorrencia.nf}, Fornecedor = ${ocorrencia.fornecedor}\n`;
+                            relatorioFinal += `     - Linha ${ocorrencia.linha}: NF = ${ocorrencia.nf}, Fornecedor = ${ocorrencia.fornecedor}\n`;
                         }
                     }
                 } else {
                     for (const falha of falhas) {
-                        relatorioFinal += `  -> ${falha.arquivo}\n`;
+                        relatorioFinal += `  -> ${falha.arquivo}\n`;
                     }
                 }
             }
@@ -151,13 +162,14 @@ async function main(pastaDosComprovantes, caminhoDoRelatorio, prefixo) {
 // ===========================================================================
 const pastaDosComprovantes = process.argv[2];
 const caminhoDoRelatorio = process.argv[3];
+const popplerBinPath = process.argv[4];
 
-if (!pastaDosComprovantes || !caminhoDoRelatorio) {
-    console.error('Uso: node index.js <pasta_dos_comprovantes> <caminho_do_relatorio_excel>');
+if (!pastaDosComprovantes || !caminhoDoRelatorio || !popplerBinPath) {
+    console.error('Uso: node index.js <pasta_dos_comprovantes> <caminho_do_relatorio_excel> <caminho_para_poppler_bin>');
     process.exit(1); // Sai com erro
 }
 
-main(pastaDosComprovantes, caminhoDoRelatorio, prefixoNovoNome)
+main(pastaDosComprovantes, caminhoDoRelatorio, prefixoNovoNome, popplerBinPath)
     .then(result => {
         console.log(result);
         process.exit(0);
