@@ -1,7 +1,7 @@
 {
   "name": "jreno",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.0.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -17,6 +17,7 @@
     "@emotion/styled": "^11.14.1",
     "@mui/icons-material": "^7.2.0",
     "@mui/material": "^7.2.0",
+    "electron-updater": "^6.6.2",
     "p-limit": "^6.2.0",
     "pdf-lib": "^1.17.1",
     "pdf-poppler": "^0.2.1",
@@ -58,12 +59,22 @@
           "**/*"
         ]
       },
-      "../src/**/*"
+      {
+        "from": "../src",
+        "to": "src"
+      }
     ],
     "extraFiles": [
       {
         "from": "../resources/poppler",
-        "to": "poppler",
+        "to": "resources/poppler",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "../resources/node_runtime",
+        "to": "resources/node_runtime",
         "filter": [
           "**/*"
         ]
@@ -71,6 +82,13 @@
     ],
     "directories": {
       "output": "release"
-    }
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "ricardo11t",
+        "repo": "renomear-arquivos"
+      }
+    ]
   }
 }

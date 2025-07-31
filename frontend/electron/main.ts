@@ -1,7 +1,7 @@
 import { app, BrowserWindow, ipcMain, IpcMainInvokeEvent, dialog } from 'electron';
+import { autoUpdater } from 'electron-updater';
 import * as path from 'path';
 import { spawn } from 'child_process';
-// REMOVIDO: import * as log from 'electron-log'; // electron-log foi removido para evitar problemas de inicialização
 
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
@@ -23,10 +23,9 @@ function createWindow() {
     });
 
     let appUrl: string;
-    // NOVO: Use app.isPackaged para determinar o ambiente
-    if (!app.isPackaged) { // Se NÃO estiver empacotado (estiver em desenvolvimento)
+    if (!app.isPackaged) {
         appUrl = 'http://localhost:5173';
-    } else { // Se estiver empacotado (produção)
+    } else {
         const appRootPath = app.getAppPath();
         appUrl = `file://${path.join(appRootPath, 'dist', 'index.html')}`;
     }
@@ -40,13 +39,13 @@ function createWindow() {
             console.error('Failed to load URL:', err);
         });
 
-    if (!app.isPackaged) { // NOVO: Use !app.isPackaged para abrir DevTools em desenvolvimento
+    if (!app.isPackaged) {
         win.webContents.openDevTools();
     }
 }
 
 
-app.whenReady().then(createWindow).catch(console.error); // Usando console.error
+app.whenReady().then(createWindow).catch(console.error);
 
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
@@ -60,24 +59,39 @@ app.on('activate', () => {
     }
 });
 
-// =========================================================================================
-// IPC Main Handlers - Comunicação entre o processo de Renderização (React) e o Principal (Electron)
-// =========================================================================================
+autoUpdater.on('update-available', (info) => {
+    console.log(`Atualização disponível! Versão: ${info.version}`);
+});
+
+autoUpdater.on('update-downloaded', () => {
+    console.log('Atualização baixada. O aplicativo será reiniciado para instalar.');
+    autoUpdater.quitAndInstall();
+});
+
+autoUpdater.on('error', (error) => {
+    console.error('Erro no autoUpdater:', error);
+});
 
 ipcMain.handle('process-files', async (event: IpcMainInvokeEvent, pdfPath: string, excelPath: string) => {
-    let baseForBackendScripts: string; // Variável que armazenará o caminho base para os scripts de backend
-    let pathToPopplerBin: string;    // Variável para o caminho dos binários do Poppler
+    let baseForBackendScripts: string;
+    let pathToPopplerBin: string;
+    let pathToNodExecutable: string;
 
     if (!app.isPackaged) {
         baseForBackendScripts = path.join(__dirname, '..', '..', 'src');
         pathToPopplerBin = path.join(__dirname, '..', '..', 'resources', 'poppler', 'win64');
+        pathToNodExecutable = path.join(__dirname, '..', '..', 'resources', 'node_runtime', 'node.exe');
     } else {
+        const appRootFolder = path.dirname(app.getPath('exe'));
+
         baseForBackendScripts = path.join(app.getAppPath(), 'src');
-        pathToPopplerBin = path.join(app.getAppPath(), 'poppler', 'win64');
+        pathToPopplerBin = path.join(appRootFolder, 'resources', 'poppler', 'win64');
+        pathToNodExecutable = path.join(appRootFolder, 'resources', 'node_runtime', 'node.exe');
     }
 
     console.log('Base For Backend Scripts Calculado:', baseForBackendScripts);
     console.log('Path to Poppler Bin Calculado:', pathToPopplerBin);
+    console.log('Path to Node Executable Calculado:', pathToNodExecutable);
 
     let dividirPdfResult = '';
     let nodeJsResult = '';
@@ -85,7 +99,7 @@ ipcMain.handle('process-files', async (event: IpcMainInvokeEvent, pdfPath: strin
     try {
         const dividirPdfScriptPath = path.join(baseForBackendScripts, 'JS', 'dividir_pdf.cjs');
         console.log("Chamando Node.js (dividir_pdf.cjs):", dividirPdfScriptPath, "com PDF:", pdfPath);
-        const nodePdfProcess = spawn('node', [dividirPdfScriptPath, pdfPath]);
+        const nodePdfProcess = spawn(pathToNodExecutable, [dividirPdfScriptPath, pdfPath]);
 
         await new Promise<void>((resolve, reject) => {
             nodePdfProcess.stdout.on('data', (data: Buffer) => {
@@ -106,11 +120,9 @@ ipcMain.handle('process-files', async (event: IpcMainInvokeEvent, pdfPath: strin
         console.log("Resultado da Divisão de PDF (stdout):", dividirPdfResult);
         console.log("Valor de dividirPdfResult antes de chamar index.cjs:", dividirPdfResult);
 
-        // 2. Chamando o script Node.js principal (index.cjs)
-        // Passando o resultado da divisão do PDF (pasta) e o caminho do Excel
         const nodeJsScriptPath = path.join(baseForBackendScripts, 'JS', 'index.cjs');
         console.log("Chamando Node.js (index.cjs):", nodeJsScriptPath, "com resultado da divisão:", dividirPdfResult, "e Excel:", excelPath, "e Poppler Bin:", pathToPopplerBin);
-        const nodeJsProcess = spawn('node', [nodeJsScriptPath, dividirPdfResult, excelPath, pathToPopplerBin]);
+        const nodeJsProcess = spawn(pathToNodExecutable, [nodeJsScriptPath, dividirPdfResult, excelPath, pathToPopplerBin]);
 
         await new Promise<void>((resolve, reject) => {
             nodeJsProcess.stdout.on('data', (data: Buffer) => {
@@ -138,15 +150,14 @@ ipcMain.handle('process-files', async (event: IpcMainInvokeEvent, pdfPath: strin
     }
 });
 
-// Handler para abrir o diálogo de seleção de arquivo
 ipcMain.handle('dialog:openFile', async (event: IpcMainInvokeEvent, filters: Electron.FileFilter[]) => {
     const { canceled, filePaths } = await dialog.showOpenDialog({
-        properties: ['openFile'], // Apenas permite selecionar arquivos
-        filters: filters           // Aplica os filtros de tipo de arquivo
+        properties: ['openFile'],
+        filters: filters
     });
 
     if (!canceled && filePaths.length > 0) {
-        return filePaths[0]; // Retorna o caminho completo do arquivo selecionado
+        return filePaths[0];
     }
-    return null; // Retorna null se a seleção for cancelada
+    return null;
 });

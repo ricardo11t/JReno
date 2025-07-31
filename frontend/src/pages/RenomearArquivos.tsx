@@ -1,10 +1,5 @@
-// frontend/src/pages/RenomearArquivos.tsx (ou .jsx)
-
 import React, { useState } from 'react';
 import SideBar from '../components/SideBar';
-
-// Para acessar as APIs do Electron/Node.js no renderer
-// Esta declaração global é crucial para o TypeScript entender window.api
 declare global {
   interface Window {
     api: {
@@ -63,21 +58,16 @@ export default function RenomearArquivos() {
   return (
     <>
       <SideBar />
-      {/* Container principal: min-h-screen, usa um tom de cinza mais escuro do VS Code (quase preto) */}
-      <div className="min-h-screen bg-vscode-bg text-vscode-text flex items-center justify-center p-4 md:pl-20"> {/* md:pl-20 para compensar a largura da sidebar */}
-        {/* Card principal: Fundo um pouco mais claro que o bg principal, com borda sutil */}
+      <div className="min-h-screen bg-vscode-bg text-vscode-text flex items-center justify-center p-4 md:pl-20">
         <div className="bg-vscode-card p-8 rounded-lg shadow-2xl w-full max-w-2xl border border-vscode-border">
 
-          {/* Título: Usa a cor de destaque azul do VS Code */}
           <div className="flex justify-center mb-8">
             <h1 className="text-3xl md:text-4xl font-extrabold text-vscode-blue text-center">
               Renomear Comprovantes para Fluig
             </h1>
           </div>
 
-          {/* Seção de seleção de arquivos */}
           <div className="flex flex-col md:flex-row justify-evenly gap-6 mb-8">
-            {/* Campo PDF */}
             <div className="flex-1 min-w-0">
               <label className="block text-lg font-medium mb-2 text-vscode-text-light">Arquivo PDF:</label>
               <button
@@ -91,7 +81,6 @@ export default function RenomearArquivos() {
               </p>
             </div>
 
-            {/* Campo Excel */}
             <div className="flex-1 min-w-0">
               <label className="block text-lg font-medium mb-2 text-vscode-text-light">Arquivo Excel:</label>
               <button
@@ -106,7 +95,6 @@ export default function RenomearArquivos() {
             </div>
           </div>
 
-          {/* Botão Processar */}
           <div className="flex justify-center mb-8">
             <button
               onClick={handleProcess}
@@ -117,7 +105,6 @@ export default function RenomearArquivos() {
             </button>
           </div>
 
-          {/* Área de Resultado */}
           {result && (
             <div className="mt-6 p-4 bg-vscode-input border border-vscode-border rounded-md shadow-inner max-h-60 overflow-y-auto">
               <h3 className="text-xl font-semibold mb-2 text-vscode-blue">Resultado:</h3>
