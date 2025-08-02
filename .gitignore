@@ -15,8 +15,7 @@ yarn-error.log*
 .env.local
 .env.*.local
 
-/resources/poppler/
-/resources/node_runtime/
+resources/
 
 .vscode/
 *.tsbuildinfo

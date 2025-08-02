@@ -1,7 +1,8 @@
 import { app, BrowserWindow, ipcMain, dialog } from 'electron';
-import { autoUpdater } from 'electron-updater';
 import * as path from 'path';
 import { spawn } from 'child_process';
+import updater from 'electron-updater';
+const autoUpdater = updater.autoUpdater;
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 const __filename = fileURLToPath(import.meta.url);

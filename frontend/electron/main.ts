@@ -1,7 +1,10 @@
 import { app, BrowserWindow, ipcMain, IpcMainInvokeEvent, dialog } from 'electron';
-import { autoUpdater } from 'electron-updater';
 import * as path from 'path';
 import { spawn } from 'child_process';
+import updater from 'electron-updater';
+import { UpdateInfo } from 'electron-updater';
+const autoUpdater = updater.autoUpdater;
+
 
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
@@ -59,7 +62,7 @@ app.on('activate', () => {
     }
 });
 
-autoUpdater.on('update-available', (info) => {
+autoUpdater.on('update-available', (info: UpdateInfo) => {
     console.log(`Atualização disponível! Versão: ${info.version}`);
 });
 
@@ -68,7 +71,7 @@ autoUpdater.on('update-downloaded', () => {
     autoUpdater.quitAndInstall();
 });
 
-autoUpdater.on('error', (error) => {
+autoUpdater.on('error', (error: Error) => {
     console.error('Erro no autoUpdater:', error);
 });
 
