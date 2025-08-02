@@ -1,18 +1,21 @@
 {
   "name": "renomear",
   "version": "1.0.0",
-  "main": "/src/index.js",
+  "main": "/src/JS/index.js",
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node src/index.js"
+    "start": "node src/JS/index.js"
   },
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
     "exceljs": "^4.4.0",
+    "p-limit": "^6.2.0",
+    "pdf-lib": "^1.17.1",
     "pdf-parse": "^1.1.1",
+    "winston": "^3.17.0",
     "xlsx": "^0.18.5"
   }
 }
