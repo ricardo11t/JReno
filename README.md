@@ -37,28 +37,28 @@ Para configurar e executar o projeto em sua máquina de desenvolvimento, você p
 ## Estrutura do Projeto
 
 JReno/
-├── frontend/                     # Código do aplicativo Electron/React (o frontend)
-│   ├── dist/                     # Build do Vite (ignorado pelo Git)
-│   ├── electron/                 # Código do processo principal do Electron
-│   ├── node_modules/             # Dependências do frontend (ignorado pelo Git)
-│   ├── package.json              # Script de build, dependências do frontend
+├── frontend/
+│   ├── dist/
+│   ├── electron/
+│   ├── node_modules/
+│   ├── package.json
 │   └── src/
-│       ├── components/           # Componentes React
-│       ├── pages/                # Páginas da aplicação
+│       ├── components/
+│       ├── pages/
 │       ├── index.css
 │       └── main.tsx
-├── resources/                    # Arquivos de recursos extras
-│   ├── poppler/                  # Binários do Poppler
-│   └── node_runtime/             # Executável do Node.js para o build
-├── src/                          # Scripts do backend (JS)
+├── resources/
+│   ├── poppler/
+│   └── node_runtime/
+├── src/
 │   ├── JS/
 │   │   ├── dividir_pdf.cjs
 │   │   ├── excel.cjs
 │   │   ├── index.cjs
 │   │   └── pdf.cjs
-│   └── PYTHON/                   # Scripts Python originais (não mais usados na função principal)
+│   └── PYTHON/
 ├── .gitignore
-├── package.json                  # package.json da raiz (backend)
+├── package.json
 └── README.md
 
 ## Como Começar (Ambiente de Desenvolvimento)
