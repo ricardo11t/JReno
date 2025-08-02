@@ -31,34 +31,54 @@ Uma aplicação desktop híbrida para Windows, desenvolvida com Electron e React
 Para configurar e executar o projeto em sua máquina de desenvolvimento, você precisará de:
 -   **Node.js** (versão 18 ou superior) e **npm**
 -   **Git**
--   **Python 3.x** (O projeto não utiliza Python na sua lógica principal, mas pode ser necessário para a execução de outros scripts e ferramentas em seu ambiente de desenvolvimento).
 -   **Binários do Poppler para Windows:** Faça o download de uma versão compatível e extraia os executáveis (`pdftotext.exe`, `pdftocairo.exe`, etc.) para a pasta `resources/poppler/win64/` na raiz do projeto (`C:\projetos\renomear`).
 
 ## Estrutura do Projeto
 
 JReno/
+
 ├── frontend/
+
 │   ├── dist/
+
 │   ├── electron/
+
 │   ├── node_modules/
+
 │   ├── package.json
+
 │   └── src/
+
 │       ├── components/
+
 │       ├── pages/
+
 │       ├── index.css
+
 │       └── main.tsx
+
 ├── resources/
+
 │   ├── poppler/
+
 │   └── node_runtime/
+
 ├── src/
+
 │   ├── JS/
+
 │   │   ├── dividir_pdf.cjs
+
 │   │   ├── excel.cjs
+
 │   │   ├── index.cjs
-│   │   └── pdf.cjs
-│   └── PYTHON/
+
+│   └── └── pdf.cjs
+
 ├── .gitignore
+
 ├── package.json
+
 └── README.md
 
 ## Como Começar (Ambiente de Desenvolvimento)
@@ -67,14 +87,19 @@ Siga estes passos para configurar e executar o projeto:
 
 1.  **Clone o Repositório:**
     ```bash
-    git clone [https://github.com/ricardo11t/renomear-arquivos.git](https://github.com/ricardo11t/renomear-arquivos.git)
-    cd renomear/frontend
+    git clone [https://github.com/ricardo11t/JReno.git]
     ```
-2.  **Instale as Dependências do Frontend:**
+    
+2.  **Instale as Dependências do Backend:**
     ```bash
     npm install
     ```
-3.  **Execute em Modo de Desenvolvimento:**
+3.  **Instale as Dependências do Frontend:**
+    ```bash
+    cd renomear/frontend
+    npm install
+    ```
+4.  **Execute em Modo de Desenvolvimento:**
     ```bash
     npm run electron-dev
     ```
@@ -89,7 +114,7 @@ Para criar a versão de produção do aplicativo, use o seguinte comando:
     npm run electron-build
     ```
 2.  **Localize o Aplicativo:** O instalador estará na pasta `frontend/release/`.
-3.  **Distribua o `JRENO Setup 0.0.1.exe`** para os usuários.
+3.  **Distribua o `JRENO Setup (VERSÃO).exe`** para os usuários.
     * Para testar rapidamente sem instalar: Execute `JRENO.exe` que está em `frontend/release/win-unpacked/JRENO.exe`.
 
 ## Ciclo de Atualização e Publicação
