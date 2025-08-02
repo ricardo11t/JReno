@@ -1,7 +1,7 @@
 {
   "name": "jreno",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.0.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -10,16 +10,24 @@
     "preview": "vite preview",
     "compile-electron": "tsc -p tsconfig.electron.json",
     "electron-dev": "npm run compile-electron && concurrently \"npm run dev\" \"wait-on tcp:5173 && electron .\"",
-    "electron-build": "npm run build && npm run compile-electron && electron-builder"
+    "electron-build": "npm run build && npm run compile-electron && electron-builder",
+    "electron-debug-pack": "npm run build && npm run compile-electron && electron-builder --dir"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
     "@mui/icons-material": "^7.2.0",
     "@mui/material": "^7.2.0",
+    "p-limit": "^6.2.0",
+    "pdf-lib": "^1.17.1",
+    "pdf-poppler": "^0.2.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "react-router-dom": "^7.7.1"
+    "react-router-dom": "^7.7.1",
+    "electron-updater": "^6.6.2",
+    "exceljs": "^4.4.0",
+    "pdf-parse": "^1.1.1",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@eslint/js": "^9.30.1",
@@ -30,7 +38,6 @@
     "concurrently": "^9.2.0",
     "electron": "^37.2.4",
     "electron-builder": "^26.0.12",
-    "electron-is-dev": "^3.0.1",
     "eslint": "^9.30.1",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
@@ -45,14 +52,48 @@
   "main": "electron/main.js",
   "build": {
     "appId": "com.yourcompany.renoproc",
-    "productName": "RENO...",
+    "productName": "JRENO",
+    "asar": false,
     "files": [
       "dist/**/*",
-      "electron/**/*",
-      "../src/**/*"
+      {
+        "from": "electron",
+        "to": "electron",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "../src",
+        "to": "src"
+      },
+      "node_modules/**/*"
+    ],
+    "extraFiles": [
+      {
+        "from": "../resources/poppler",
+        "to": "resources/poppler",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "../resources/node_runtime",
+        "to": "resources/node_runtime",
+        "filter": [
+          "**/*"
+        ]
+      }
     ],
     "directories": {
       "output": "release"
-    }
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "ricardo11t",
+        "repo": "renomear-arquivos"
+      }
+    ]
   }
 }

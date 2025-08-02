@@ -1,7 +1,10 @@
 import { app, BrowserWindow, ipcMain, IpcMainInvokeEvent, dialog } from 'electron';
 import * as path from 'path';
-import * as isDev from 'electron-is-dev';
 import { spawn } from 'child_process';
+import updater from 'electron-updater';
+import { UpdateInfo } from 'electron-updater';
+const autoUpdater = updater.autoUpdater;
+
 
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
@@ -10,6 +13,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 function createWindow() {
+    console.log('App starting...');
+
     const win = new BrowserWindow({
         width: 1024,
         height: 768,
@@ -18,20 +23,32 @@ function createWindow() {
             contextIsolation: true,
             preload: path.join(__dirname, 'preload.js'),
         }
-    })
+    });
 
-    win.loadURL(
-        isDev
-            ? 'http://localhost:5173'
-            : `file://${path.join(__dirname, '../dist/index.html')}`
-    );
+    let appUrl: string;
+    if (!app.isPackaged) {
+        appUrl = 'http://localhost:5173';
+    } else {
+        const appRootPath = app.getAppPath();
+        appUrl = `file://${path.join(appRootPath, 'dist', 'index.html')}`;
+    }
 
-    if (isDev) {
+    console.log('DEBUG (BUILD): Attempting to load URL:', appUrl);
+    win.loadURL(appUrl)
+        .then(() => {
+            console.log('URL loaded successfully!');
+        })
+        .catch((err) => {
+            console.error('Failed to load URL:', err);
+        });
+
+    if (!app.isPackaged) {
         win.webContents.openDevTools();
     }
 }
 
-app.whenReady().then(createWindow);
+
+app.whenReady().then(createWindow).catch(console.error);
 
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
@@ -45,63 +62,94 @@ app.on('activate', () => {
     }
 });
 
-ipcMain.handle('process-files', async (event, pdfPath: string, excelPath: string) => {
-    const rootBackendPath = path.join(app.getAppPath(), '..');
-    console.log('Root Backend Path:', rootBackendPath);
+autoUpdater.on('update-available', (info: UpdateInfo) => {
+    console.log(`Atualização disponível! Versão: ${info.version}`);
+});
 
-    let pythonResult = '';
+autoUpdater.on('update-downloaded', () => {
+    console.log('Atualização baixada. O aplicativo será reiniciado para instalar.');
+    autoUpdater.quitAndInstall();
+});
+
+autoUpdater.on('error', (error: Error) => {
+    console.error('Erro no autoUpdater:', error);
+});
+
+ipcMain.handle('process-files', async (event: IpcMainInvokeEvent, pdfPath: string, excelPath: string) => {
+    let baseForBackendScripts: string;
+    let pathToPopplerBin: string;
+    let pathToNodExecutable: string;
+
+    if (!app.isPackaged) {
+        baseForBackendScripts = path.join(__dirname, '..', '..', 'src');
+        pathToPopplerBin = path.join(__dirname, '..', '..', 'resources', 'poppler', 'win64');
+        pathToNodExecutable = path.join(__dirname, '..', '..', 'resources', 'node_runtime', 'node.exe');
+    } else {
+        const appRootFolder = path.dirname(app.getPath('exe'));
+
+        baseForBackendScripts = path.join(app.getAppPath(), 'src');
+        pathToPopplerBin = path.join(appRootFolder, 'resources', 'poppler', 'win64');
+        pathToNodExecutable = path.join(appRootFolder, 'resources', 'node_runtime', 'node.exe');
+    }
+
+    console.log('Base For Backend Scripts Calculado:', baseForBackendScripts);
+    console.log('Path to Poppler Bin Calculado:', pathToPopplerBin);
+    console.log('Path to Node Executable Calculado:', pathToNodExecutable);
+
+    let dividirPdfResult = '';
     let nodeJsResult = '';
 
     try {
-        const pythonScriptPath = path.join(rootBackendPath, 'src', 'PYTHON', 'dividir_pdf_todos_da_pasta.py');
-        console.log("Chamando Python:", pythonScriptPath, "com PDF:", pdfPath);
-        const pythonProcess = spawn('python', [pythonScriptPath, pdfPath]);
+        const dividirPdfScriptPath = path.join(baseForBackendScripts, 'JS', 'dividir_pdf.cjs');
+        console.log("Chamando Node.js (dividir_pdf.cjs):", dividirPdfScriptPath, "com PDF:", pdfPath);
+        const nodePdfProcess = spawn(pathToNodExecutable, [dividirPdfScriptPath, pdfPath]);
 
-        await new Promise((resolve, reject) => {
-            pythonProcess.stdout.on('data', (data: Buffer) => {
-                pythonResult += data.toString();
+        await new Promise<void>((resolve, reject) => {
+            nodePdfProcess.stdout.on('data', (data: Buffer) => {
+                dividirPdfResult += data.toString();
             });
-            pythonProcess.stderr.on('data', (data: Buffer) => {
-                console.error(`Erro no Python: ${data}`);
-            })
-            pythonProcess.on('close', (code: number) => {
+            nodePdfProcess.stderr.on('data', (data: Buffer) => {
+                console.error(`Erro no Node.js (dividir_pdf.cjs stderr): ${data}`);
+            });
+            nodePdfProcess.on('close', (code: number) => {
                 if (code !== 0) {
-                    reject(new Error(`Script Python falhou com código ${code}`));
+                    reject(new Error(`Script Node.js (dividir_pdf.cjs) falhou com código ${code}. Output: ${dividirPdfResult || 'Nenhum output.'}`));
                 } else {
-                    resolve(null);
+                    resolve();
                 }
-            })
-        })
-        pythonResult = pythonResult.trim();
-        console.log("Resultado do Python:", pythonResult);
+            });
+        });
+        dividirPdfResult = dividirPdfResult.trim();
+        console.log("Resultado da Divisão de PDF (stdout):", dividirPdfResult);
+        console.log("Valor de dividirPdfResult antes de chamar index.cjs:", dividirPdfResult);
 
-        const nodeJsScriptPath = path.join(rootBackendPath, 'src', 'JS', 'index.cjs');
-        console.log("Chamando Node.js:", nodeJsScriptPath, "com resultado Python:", pythonResult, "e Excel:", excelPath);
-        const nodeJsProcess = spawn('node', [nodeJsScriptPath, pythonResult, excelPath]);
+        const nodeJsScriptPath = path.join(baseForBackendScripts, 'JS', 'index.cjs');
+        console.log("Chamando Node.js (index.cjs):", nodeJsScriptPath, "com resultado da divisão:", dividirPdfResult, "e Excel:", excelPath, "e Poppler Bin:", pathToPopplerBin);
+        const nodeJsProcess = spawn(pathToNodExecutable, [nodeJsScriptPath, dividirPdfResult, excelPath, pathToPopplerBin]);
 
-        await new Promise((resolve, reject) => {
-            nodeJsProcess.stdout.on('data', (data) => {
+        await new Promise<void>((resolve, reject) => {
+            nodeJsProcess.stdout.on('data', (data: Buffer) => {
                 nodeJsResult += data.toString();
             });
-            nodeJsProcess.stderr.on('data', (data) => {
-                console.error(`Node.js stderr: ${data}`);
+            nodeJsProcess.stderr.on('data', (data: Buffer) => {
+                console.error(`Erro no Node.js (index.cjs stderr): ${data}`);
             });
-            nodeJsProcess.on('close', (code) => {
+            nodeJsProcess.on('close', (code: number) => {
                 if (code !== 0) {
-                    reject(new Error(`Script Node.js falhou com código ${code}`));
+                    reject(new Error(`Script Node.js (index.cjs) falhou com código ${code}. Output: ${nodeJsResult || 'Nenhum output.'}`));
                 } else {
-                    resolve(null);
+                    resolve();
                 }
             });
         });
         nodeJsResult = nodeJsResult.trim();
-        console.log("Resultado do Node.js:", nodeJsResult);
+        console.log("Resultado Final do Node.js (stdout):", nodeJsResult);
 
         return { success: true, message: nodeJsResult };
     } catch (error: unknown) {
         const err = error as Error;
         console.error("Erro na orquestração:", err);
-        return { success: false, message: `Erro: ${err.message}` };
+        return { success: false, message: `Erro na orquestração: ${err.message}` };
     }
 });
 
