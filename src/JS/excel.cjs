@@ -55,9 +55,6 @@ async function encontrarNFeFORNECEDOR(result, caminho, memoriaNFsUtilizadas) {
         if (correspondenciasExatas.length === 1) return { status: 'success', data: correspondenciasExatas[0] };
 
         if (correspondenciasExatas.length === 0 && correspondenciasDeValor.length > 0) {
-            // =================================================================
-            //                 INÍCIO DO BLOCO DE SUPER DEPURAÇÃO
-            // =================================================================
             console.log(`[DEPURAÇÃO AVANÇADA] Nenhuma data exata encontrada. Ativando busca flexível com janela de ${JANELA_TOLERANCIA_DIAS} dia(s).`);
             const dia = parseInt(dataPdfFormatada.substring(0, 2), 10), mes = parseInt(dataPdfFormatada.substring(2, 4), 10) - 1, ano = parseInt(dataPdfFormatada.substring(4, 8), 10);
             const dataPdfObjeto = new Date(Date.UTC(ano, mes, dia));
@@ -81,10 +78,6 @@ async function encontrarNFeFORNECEDOR(result, caminho, memoriaNFsUtilizadas) {
                 correspondenciasFlexiveis.forEach(match => { console.log(`  -> Linha ${match.linha}: (NF=${match.nf}, Data na Planilha=${match.dataRaw.toString()})`); });
             }
              console.log('-------------------------------------------------------------------');
-            // =================================================================
-            //                   FIM DO BLOCO DE SUPER DEPURAÇÃO
-            // =================================================================
-
             if (correspondenciasFlexiveis.length === 1) return { status: 'success', data: correspondenciasFlexiveis[0] };
             if (correspondenciasFlexiveis.length > 1) return { status: 'not_found', message: 'Múltiplos valores encontrados dentro da janela de tolerância. Requer verificação manual.' };
         }

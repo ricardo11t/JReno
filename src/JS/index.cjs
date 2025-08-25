@@ -20,53 +20,65 @@ async function obterCaminhoUnico(pasta, nomeBase, extensao) {
     }
 }
 
-// NOVO: main agora recebe 'popplerBinPath'
+function formatarDataParaNomeArquivo(dataRaw) {
+    let dataObj;
+
+    if (dataRaw instanceof Date) {
+        dataObj = dataRaw;
+    } else if (typeof dataRaw === 'number') {
+        dataObj = new Date(Date.UTC(1900, 0, dataRaw - 1));
+    } else {
+        return 'DATA_INVALIDA';
+    }
+
+    const ano = dataObj.getUTCFullYear();
+    const mes = String(dataObj.getUTCMonth() + 1).padStart(2, '0'); // Adiciona +1 porque os meses começam do 0
+    const dia = String(dataObj.getUTCDate()).padStart(2, '0');
+
+    return `${ano}-${mes}-${dia}`;
+}
+
+
 async function main(pastaDosComprovantes, caminhoDoRelatorio, prefixo, popplerBinPath) {
-    // --- LÓGICA DE RELATÓRIO APRIMORADA ---
     const arquivosComFalha = [];
     const memoriaNFsUtilizadas = new Map();
 
     try {
-        // Verifica se a pasta dos comprovantes existe
         if (!fs.existsSync(pastaDosComprovantes)) {
             console.error(`Erro: A pasta dos comprovantes não existe: ${pastaDosComprovantes}`);
-            return `Erro: Pasta dos comprovantes não encontrada: ${pastaDosComprovantes}`; // Retorna mensagem de erro
+            return `Erro: Pasta dos comprovantes não encontrada: ${pastaDosComprovantes}`;
         }
-        // Verifica se o arquivo do relatório existe
         if (!fs.existsSync(caminhoDoRelatorio)) {
             console.error(`Erro: O arquivo do relatório Excel não existe: ${caminhoDoRelatorio}`);
-            return `Erro: Relatório Excel não encontrado: ${caminhoDoRelatorio}`; // Retorna mensagem de erro
+            return `Erro: Relatório Excel não encontrado: ${caminhoDoRelatorio}`;
         }
 
         const arquivos = await fs.promises.readdir(pastaDosComprovantes);
-        const pdfArquivos = arquivos.filter(a => path.extname(a).toLowerCase() === '.pdf'); // Filtra apenas PDFs
+        const pdfArquivos = arquivos.filter(a => path.extname(a).toLowerCase() === '.pdf');
         const totalArquivos = pdfArquivos.length;
-        let arquivosProcessados = 0; // Para controle de progresso
+        let arquivosProcessados = 0;
 
-        // NOVO: Limite de concorrência (ex: 5 operações simultâneas)
-        const limit = pLimit(5); // Você pode ajustar este número (5-10 é um bom ponto de partida)
+        const limit = pLimit(5);
 
-        // Mapeia cada arquivo para uma promessa que será executada com o limite
-        const tasks = pdfArquivos.map(arquivo => limit(async () => { // NOVO: Usa p-limit
+        const tasks = pdfArquivos.map(arquivo => limit(async () => {
             const caminhoAntigo = path.join(pastaDosComprovantes, arquivo);
 
             arquivosProcessados++;
-            console.error(`\nProcessando ${arquivosProcessados}/${totalArquivos}: ${arquivo}`); // Mude para console.error
+            console.error(`\nProcessando ${arquivosProcessados}/${totalArquivos}: ${arquivo}`);
 
             let result;
             try {
-                // Passa 'popplerBinPath' para encontrarValorDoComprovante
                 result = await encontrarValorDoComprovante(caminhoAntigo, popplerBinPath);
             } catch (e) {
                 console.error(`[${arquivo}] Erro CRÍTICO ao processar PDF: ${e.message}`);
                 arquivosComFalha.push({ arquivo, motivo: 'Erro crítico na leitura do PDF.' });
-                return; // Pula para o próximo arquivo no loop de concorrência
+                return;
             }
 
             if (result === null) {
                 console.error(`[PULANDO] Motivo: Não foi possível extrair os dados do PDF.`);
                 arquivosComFalha.push({ arquivo, motivo: 'Não foi possível ler os dados do PDF (layout desconhecido).' });
-                return; // Pula
+                return;
             }
 
             const resultadoExcel = await encontrarNFeFORNECEDOR(result, caminhoDoRelatorio, memoriaNFsUtilizadas);
@@ -76,7 +88,6 @@ async function main(pastaDosComprovantes, caminhoDoRelatorio, prefixo, popplerBi
                 const nf = dataExcel.nf;
                 let fornecedor = dataExcel.fornecedor;
 
-                // Sua lógica de tratamento do fornecedor
                 const fornecedorComSplit = fornecedor.split('/01-')[1];
                 if (typeof fornecedorComSplit === "undefined") {
                     fornecedor = fornecedor.split('/00-')[1];
@@ -88,14 +99,17 @@ async function main(pastaDosComprovantes, caminhoDoRelatorio, prefixo, popplerBi
                 const extensao = path.extname(arquivo);
                 const nomeNf = String(nf).replace(/[\/\\?%*:|"<>]/g, '_');
                 const nomeFornecedor = String(fornecedor).replace(/[\/\\?%*:|"<>]/g, '_');
-                const nomeBase = `${prefixo}${nomeNf} ${nomeFornecedor}`;
+
+                const dataFormatada = formatarDataParaNomeArquivo(dataExcel.dataRaw);
+                const nomeBase = `${dataFormatada} ${nomeFornecedor} NF_${nomeNf}`;
+
                 const caminhoNovo = await obterCaminhoUnico(pastaDosComprovantes, nomeBase, extensao);
                 const nomeFinal = path.basename(caminhoNovo);
 
                 try {
                     if (caminhoAntigo !== caminhoNovo) {
                         await fs.promises.rename(caminhoAntigo, caminhoNovo);
-                        console.log(`[SUCESSO] Renomeado para: ${nomeFinal}`); // Mude para console.log para que apareça limpo
+                        console.log(`[SUCESSO] Renomeado para: ${nomeFinal}`);
                     }
                 } catch (err) {
                     console.error(`[ERRO] Erro ao tentar renomear para ${nomeFinal}: ${err.message}`);
@@ -106,15 +120,12 @@ async function main(pastaDosComprovantes, caminhoDoRelatorio, prefixo, popplerBi
                 console.error(`[PULANDO] Motivo: ${motivo}`);
                 arquivosComFalha.push({ arquivo, motivo, detalhes: resultadoExcel });
             }
-        })); // Fim da task para p-limit
+        }));
 
-        // NOVO: Espera todas as tarefas concluírem
         await Promise.all(tasks);
 
-
-        // --- RELATÓRIO FINAL ---
         let relatorioFinal = '\n\n===================================================================\n';
-        relatorioFinal += '                 RELATÓRIO FINAL DE EXECUÇÃO\n';
+        relatorioFinal += '                           RELATÓRIO FINAL DE EXECUÇÃO\n';
         relatorioFinal += '===================================================================\n';
         const arquivosRenomeados = totalArquivos - arquivosComFalha.length;
         relatorioFinal += `\nTotal de Comprovantes: ${totalArquivos}\n`;
@@ -136,42 +147,39 @@ async function main(pastaDosComprovantes, caminhoDoRelatorio, prefixo, popplerBi
 
                 if (motivo.includes('Duplicidade')) {
                     for (const falha of falhas) {
-                        relatorioFinal += `  -> ${falha.arquivo} (Valor: ${falha.detalhes.value})\n`;
+                        relatorioFinal += `  -> ${falha.arquivo} (Valor: ${falha.detalhes.value})\n`;
                         for (const ocorrencia of falha.detalhes.duplicates) {
-                            relatorioFinal += `     - Linha ${ocorrencia.linha}: NF = ${ocorrencia.nf}, Fornecedor = ${ocorrencia.fornecedor}\n`;
+                            relatorioFinal += `     - Linha ${ocorrencia.linha}: NF = ${ocorrencia.nf}, Fornecedor = ${ocorrencia.fornecedor}\n`;
                         }
                     }
                 } else {
                     for (const falha of falhas) {
-                        relatorioFinal += `  -> ${falha.arquivo}\n`;
+                        relatorioFinal += `  -> ${falha.arquivo}\n`;
                     }
                 }
             }
         }
         relatorioFinal += '\n===================================================================\n';
-        console.log(relatorioFinal); // Imprime o relatório final no console do Node.js/Electron
-        return relatorioFinal; // Retorna o relatório para o Electron
+        console.log(relatorioFinal);
+        return relatorioFinal;
     } catch (err) {
         console.error('Erro GERAL e fatal ao processar a pasta:', err);
-        return `Erro GERAL e fatal: ${err.message}`; // Retorna a mensagem de erro para o Electron
+        return `Erro GERAL e fatal: ${err.message}`;
     }
 }
 
-// ===========================================================================
-// Nova seção para lidar com os argumentos da linha de comando
-// ===========================================================================
 const pastaDosComprovantes = process.argv[2];
 const caminhoDoRelatorio = process.argv[3];
 const popplerBinPath = process.argv[4];
 
 if (!pastaDosComprovantes || !caminhoDoRelatorio || !popplerBinPath) {
     console.error('Uso: node index.js <pasta_dos_comprovantes> <caminho_do_relatorio_excel> <caminho_para_poppler_bin>');
-    process.exit(1); // Sai com erro
+    process.exit(1);
 }
 
 main(pastaDosComprovantes, caminhoDoRelatorio, prefixoNovoNome, popplerBinPath)
     .then(result => {
-        console.log(result);
+        // O resultado já é impresso dentro da função main, não precisa imprimir de novo.
         process.exit(0);
     })
     .catch(error => {

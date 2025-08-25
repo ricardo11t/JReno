@@ -28,50 +28,41 @@ async function dividirPdfERetornarPasta(pdfInputPath) {
         const pdfDoc = await PDFDocument.load(existingPdfBytes);
 
         const numberOfPages = pdfDoc.getPages().length;
-        console.error(`Processando '${nomeArquivoPdf}' - Total de páginas: ${numberOfPages}`); // Log para stderr
+        console.error(`Processando '${nomeArquivoPdf}' - Total de páginas: ${numberOfPages}`);
 
         for (let i = 0; i < numberOfPages; i++) {
-            const newPdfDoc = await PDFDocument.create(); // Cria um novo documento PDF para cada página
-            const [copiedPage] = await newPdfDoc.copyPages(pdfDoc, [i]); // Copia a página do documento original
-            newPdfDoc.addPage(copiedPage); // Adiciona a página ao novo documento
+            const newPdfDoc = await PDFDocument.create();
+            const [copiedPage] = await newPdfDoc.copyPages(pdfDoc, [i]);
+            newPdfDoc.addPage(copiedPage);
 
-            const pdfBytes = await newPdfDoc.save(); // Salva o novo documento como bytes
+            const pdfBytes = await newPdfDoc.save();
             const pageOutputPath = path.join(pastaSaida, `pagina_${i + 1}.pdf`);
-            fs.writeFileSync(pageOutputPath, pdfBytes); // Escreve os bytes no arquivo
+            fs.writeFileSync(pageOutputPath, pdfBytes);
 
-            console.error(`  - Página ${i + 1} salva.`); // Log para stderr
+            console.error(`  - Página ${i + 1} salva.`);
         }
 
-        console.error(`Divisão de '${nomeArquivoPdf}' concluída com sucesso.`); // Log para stderr
+        console.error(`Divisão de '${nomeArquivoPdf}' concluída com sucesso.`);
 
-        // --- IMPRIMA APENAS O CAMINHO FINAL PARA STDOUT ---
-        return pastaSaida; // Retorne a string para ser impressa no if (require.main === module)
-
+        return pastaSaida;
     } catch (e) {
         console.error(`Erro ao dividir o PDF '${pdfInputPath}': ${e.message || e}`);
-        process.exit(1); // Sai com código de erro
+        process.exit(1);
     }
 }
 
-// ===========================================================================
-// Nova seção para lidar com os argumentos da linha de comando
-// ===========================================================================
 if (require.main === module) {
-    const pdfInputPath = process.argv[2]; // O primeiro argumento é o caminho do PDF
-    // O popplerBinPath ainda é passado para o script, mas NÃO é usado por esta função (divisão)
-    // Ele será usado pela função encontrarValorDoComprovante no pdf.cjs, que é chamada por index.cjs.
-    // Manter o argumento aqui garante a consistência da chamada do main.ts.
-    const popplerBinPath = process.argv[3]; // Recebe o caminho do Poppler Bin, mas não usa para divisão
-
-    if (!pdfInputPath) { // A verificação de popplerBinPath foi removida daqui, pois não é usada por esta função
+    const pdfInputPath = process.argv[2];
+    
+    const popplerBinPath = process.argv[3];
+    if (!pdfInputPath) {
         console.error('Uso: node dividir_pdf.cjs <caminho_do_arquivo_pdf>');
         process.exit(1);
     }
 
-    dividirPdfERetornarPasta(pdfInputPath) // popplerBinPath não é passado para esta função
+    dividirPdfERetornarPasta(pdfInputPath)
         .then(resultPath => {
-            // ESTA É A ÚNICA LINHA QUE DEVE IMPRIMIR APENAS O CAMINHO FINAL PARA STDOUT
-            process.stdout.write(resultPath.trim()); // Use process.stdout.write com trim()
+            process.stdout.write(resultPath.trim());
             process.exit(0);
         })
         .catch(error => {
