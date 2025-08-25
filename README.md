@@ -29,9 +29,10 @@ Uma aplicação desktop híbrida para Windows, desenvolvida com Electron e React
 ## Pré-requisitos para Desenvolvimento
 
 Para configurar e executar o projeto em sua máquina de desenvolvimento, você precisará de:
--   **Node.js** (versão 18 ou superior) e **npm**
+-   **Node.js** (versão 18 ou superior) e **npm** (ADICIONAR O EXECUTAVEL DO NODE [node.exe] A PASTA `resources/node_runtime`)
 -   **Git**
--   **Binários do Poppler para Windows:** Faça o download de uma versão compatível e extraia os executáveis (`pdftotext.exe`, `pdftocairo.exe`, etc.) para a pasta `resources/poppler/win64/` na raiz do projeto (`C:\projetos\renomear`).
+-   **Binários do Poppler para Windows:** Faça o download de uma versão compatível e extraia os executáveis (`pdftotext.exe`, `pdftocairo.exe`, etc.) para a pasta `resources/poppler/win64/` na raiz do projeto.
+-   * SE NÃO HOUVER A PASTA `resources` NA RAIZ, CRIE. *
 
 ## Estrutura do Projeto
 
