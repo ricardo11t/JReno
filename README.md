@@ -96,7 +96,7 @@ Siga estes passos para configurar e executar o projeto:
     ```
 3.  **Instale as Dependências do Frontend:**
     ```bash
-    cd renomear/frontend
+    cd frontend
     npm install
     ```
 4.  **Execute em Modo de Desenvolvimento:**
