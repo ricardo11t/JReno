@@ -58,7 +58,11 @@ export default function RenomearArquivos() {
   return (
     <>
       <SideBar />
+      <div className="bg-vscode-bg text-vscode-text flex p-4 md:pl-20">
+        <div>Versão 0.0.4</div>
+      </div>
       <div className="min-h-screen bg-vscode-bg text-vscode-text flex items-center justify-center p-4 md:pl-20">
+
         <div className="bg-vscode-card p-8 rounded-lg shadow-2xl w-full max-w-2xl border border-vscode-border">
 
           <div className="flex justify-center mb-8">

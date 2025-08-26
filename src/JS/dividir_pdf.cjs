@@ -5,11 +5,11 @@ const { PDFDocument } = require('pdf-lib');
 async function dividirPdfERetornarPasta(pdfInputPath) {
     if (!fs.existsSync(pdfInputPath)) {
         console.error(`Erro: Arquivo PDF não encontrado: '${pdfInputPath}'`);
-        process.exit(1);
+        throw new Error(`Arquivo PDF não encontrado: '${pdfInputPath}'`);
     }
     if (!pdfInputPath.toLowerCase().endsWith('.pdf')) {
         console.error(`Erro: O arquivo de entrada não é um PDF válido: '${pdfInputPath}'`);
-        process.exit(1);
+        throw new Error(`O arquivo de entrada não é um PDF válido: '${pdfInputPath}'`);
     }
 
     const diretorioPdfEntrada = path.dirname(pdfInputPath);
@@ -39,7 +39,7 @@ async function dividirPdfERetornarPasta(pdfInputPath) {
             const pageOutputPath = path.join(pastaSaida, `pagina_${i + 1}.pdf`);
             fs.writeFileSync(pageOutputPath, pdfBytes);
 
-            console.error(`  - Página ${i + 1} salva.`);
+            console.error(`  - Página ${i + 1} salva.`);
         }
 
         console.error(`Divisão de '${nomeArquivoPdf}' concluída com sucesso.`);
@@ -47,14 +47,13 @@ async function dividirPdfERetornarPasta(pdfInputPath) {
         return pastaSaida;
     } catch (e) {
         console.error(`Erro ao dividir o PDF '${pdfInputPath}': ${e.message || e}`);
-        process.exit(1);
+        throw e;
     }
 }
 
 if (require.main === module) {
     const pdfInputPath = process.argv[2];
-    
-    const popplerBinPath = process.argv[3];
+
     if (!pdfInputPath) {
         console.error('Uso: node dividir_pdf.cjs <caminho_do_arquivo_pdf>');
         process.exit(1);
@@ -62,7 +61,7 @@ if (require.main === module) {
 
     dividirPdfERetornarPasta(pdfInputPath)
         .then(resultPath => {
-            process.stdout.write(resultPath.trim());
+            console.log(resultPath);
             process.exit(0);
         })
         .catch(error => {

@@ -38,7 +38,11 @@ function createWindow() {
         win.webContents.openDevTools();
     }
 }
-app.whenReady().then(createWindow).catch(console.error);
+app.whenReady()
+    .then(() => {
+    createWindow();
+    autoUpdater.checkForUpdatesAndNotify();
+}).catch(console.error);
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
         app.quit();

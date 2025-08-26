@@ -32,7 +32,7 @@ function formatarDataParaNomeArquivo(dataRaw) {
     }
 
     const ano = dataObj.getUTCFullYear();
-    const mes = String(dataObj.getUTCMonth() + 1).padStart(2, '0'); // Adiciona +1 porque os meses começam do 0
+    const mes = String(dataObj.getUTCMonth() + 1).padStart(2, '0');
     const dia = String(dataObj.getUTCDate()).padStart(2, '0');
 
     return `${ano}-${mes}-${dia}`;
@@ -125,7 +125,7 @@ async function main(pastaDosComprovantes, caminhoDoRelatorio, prefixo, popplerBi
         await Promise.all(tasks);
 
         let relatorioFinal = '\n\n===================================================================\n';
-        relatorioFinal += '                           RELATÓRIO FINAL DE EXECUÇÃO\n';
+        relatorioFinal += '                                RELATÓRIO FINAL DE EXECUÇÃO\n';
         relatorioFinal += '===================================================================\n';
         const arquivosRenomeados = totalArquivos - arquivosComFalha.length;
         relatorioFinal += `\nTotal de Comprovantes: ${totalArquivos}\n`;
@@ -147,14 +147,14 @@ async function main(pastaDosComprovantes, caminhoDoRelatorio, prefixo, popplerBi
 
                 if (motivo.includes('Duplicidade')) {
                     for (const falha of falhas) {
-                        relatorioFinal += `  -> ${falha.arquivo} (Valor: ${falha.detalhes.value})\n`;
+                        relatorioFinal += `   -> ${falha.arquivo} (Valor: ${falha.detalhes.value})\n`;
                         for (const ocorrencia of falha.detalhes.duplicates) {
-                            relatorioFinal += `     - Linha ${ocorrencia.linha}: NF = ${ocorrencia.nf}, Fornecedor = ${ocorrencia.fornecedor}\n`;
+                            relatorioFinal += `      - Linha ${ocorrencia.linha}: NF = ${ocorrencia.nf}, Fornecedor = ${ocorrencia.fornecedor}\n`;
                         }
                     }
                 } else {
                     for (const falha of falhas) {
-                        relatorioFinal += `  -> ${falha.arquivo}\n`;
+                        relatorioFinal += `   -> ${falha.arquivo}\n`;
                     }
                 }
             }
@@ -179,7 +179,6 @@ if (!pastaDosComprovantes || !caminhoDoRelatorio || !popplerBinPath) {
 
 main(pastaDosComprovantes, caminhoDoRelatorio, prefixoNovoNome, popplerBinPath)
     .then(result => {
-        // O resultado já é impresso dentro da função main, não precisa imprimir de novo.
         process.exit(0);
     })
     .catch(error => {

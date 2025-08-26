@@ -75,14 +75,14 @@ async function encontrarNFeFORNECEDOR(result, caminho, memoriaNFsUtilizadas) {
             console.log(`[DEPURAÇÃO AVANÇADA] Foram encontradas ${correspondenciasFlexiveis.length} correspondências na janela de tolerância.`);
             if (correspondenciasFlexiveis.length > 1) {
                 console.log('[DEPURAÇÃO AVANÇADA] Detalhes das correspondências flexíveis ambíguas:');
-                correspondenciasFlexiveis.forEach(match => { console.log(`  -> Linha ${match.linha}: (NF=${match.nf}, Data na Planilha=${match.dataRaw.toString()})`); });
+                correspondenciasFlexiveis.forEach(match => { console.log(`   -> Linha ${match.linha}: (NF=${match.nf}, Data na Planilha=${match.dataRaw.toString()})`); });
             }
-             console.log('-------------------------------------------------------------------');
+               console.log('-------------------------------------------------------------------');
             if (correspondenciasFlexiveis.length === 1) return { status: 'success', data: correspondenciasFlexiveis[0] };
             if (correspondenciasFlexiveis.length > 1) return { status: 'not_found', message: 'Múltiplos valores encontrados dentro da janela de tolerância. Requer verificação manual.' };
         }
         
-         if (correspondenciasExatas.length > 1) {
+          if (correspondenciasExatas.length > 1) {
             const primeiroFornecedor = correspondenciasExatas[0].fornecedor;
             if (!correspondenciasExatas.every(c => c.fornecedor === primeiroFornecedor)) return { status: 'duplicate', value: valorPdfArredondado, duplicates: correspondenciasExatas };
             const chaveMemoria = `${valorPdfArredondado}-${dataPdfFormatada}-${primeiroFornecedor}`;

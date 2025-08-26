@@ -1,7 +1,7 @@
 {
   "name": "jreno",
   "private": true,
-  "version": "0.0.1",
+  "version": "0.0.4",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "compile-electron": "tsc -p tsconfig.electron.json",
     "electron-dev": "npm run compile-electron && concurrently \"npm run dev\" \"wait-on tcp:5173 && electron .\"",
-    "electron-build": "npm run build && npm run compile-electron && electron-builder",
+    "electron-build": "npm run build && npm run compile-electron && electron-builder --publish always",
     "electron-debug-pack": "npm run build && npm run compile-electron && electron-builder --dir"
   },
   "dependencies": {

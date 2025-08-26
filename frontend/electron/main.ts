@@ -5,7 +5,6 @@ import updater from 'electron-updater';
 import { UpdateInfo } from 'electron-updater';
 const autoUpdater = updater.autoUpdater;
 
-
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 
@@ -48,7 +47,11 @@ function createWindow() {
 }
 
 
-app.whenReady().then(createWindow).catch(console.error);
+app.whenReady()
+    .then(() => {
+        createWindow();
+        autoUpdater.checkForUpdatesAndNotify();
+    }).catch(console.error);
 
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
